@@ -5,9 +5,9 @@ import io.github.srinss01.core.WindowManager;
 import static org.lwjgl.opengl.GL11.glViewport;
 
 @SuppressWarnings("unused")
-public class FramebufferSizeCallbackImpl {
+public class WindowSizeCallback {
     private final WindowManager windowManager;
-    public FramebufferSizeCallbackImpl(WindowManager windowManager) {
+    public WindowSizeCallback(WindowManager windowManager) {
         this.windowManager = windowManager;
     }
 

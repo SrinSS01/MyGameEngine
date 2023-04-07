@@ -1,12 +1,12 @@
 package io.github.srinss01.core;
 
-import io.github.srinss01.core.callbacks.FramebufferSizeCallbackImpl;
+import io.github.srinss01.core.callbacks.WindowSizeCallback;
 import io.github.srinss01.core.callbacks.Keyboard;
 import lombok.Getter;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
+import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL;
 import org.slf4j.Logger;
 
@@ -20,8 +20,7 @@ public class WindowManager {
     private long window;
     @Getter
     private final Dimensions windowDimensions;
-    private String title;
-    private boolean vSync;
+    private final String title;
     private static final float FOV = (float) Math.toRadians(60.0f);
     private static final float Z_NEAR = 0.01f;
     private static final float Z_FAR = 1000.f;
@@ -40,7 +39,6 @@ public class WindowManager {
     WindowManager(int width, int height, String title, boolean vSync) {
         windowDimensions = Dimensions.of(width, height);
         this.title = title;
-        this.vSync = vSync;
         init();
         // glfw video mode
         var vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -79,8 +77,8 @@ public class WindowManager {
         }
 
         GLFWKeyCallback.create(Keyboard::callback).set(window);
-        FramebufferSizeCallbackImpl framebufferSizeCallback = new FramebufferSizeCallbackImpl(this);
-        GLFWFramebufferSizeCallback.create(framebufferSizeCallback::callback).set(window);
+        WindowSizeCallback windowSizeCallback = new WindowSizeCallback(this);
+        GLFWWindowSizeCallback.create(windowSizeCallback::callback).set(window);
     }
 
     // toggle fullscreen
