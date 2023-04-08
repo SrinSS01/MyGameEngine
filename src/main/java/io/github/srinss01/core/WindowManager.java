@@ -3,6 +3,7 @@ package io.github.srinss01.core;
 import io.github.srinss01.core.callbacks.WindowSizeCallback;
 import io.github.srinss01.core.callbacks.Keyboard;
 import lombok.Getter;
+import lombok.Setter;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -19,14 +20,14 @@ import static org.lwjgl.opengl.GL11.*;
 public class WindowManager {
     private long window;
     @Getter
-    private final Dimensions windowDimensions;
+    private final WindowSizePoseCache windowWindowSizePoseCache;
     private final String title;
     private static final float FOV = (float) Math.toRadians(60.0f);
-    private static final float Z_NEAR = 0.01f;
+    private static final float Z_NEAR = 0.1f;
     private static final float Z_FAR = 1000.f;
 
     @Getter
-    private final Matrix4f projectionMatrix = new Matrix4f();
+    private final Matrix4f projectionMatrix;
 
     private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(WindowManager.class);
     static {
@@ -37,7 +38,8 @@ public class WindowManager {
 
 
     WindowManager(int width, int height, String title, boolean vSync) {
-        windowDimensions = Dimensions.of(width, height);
+        projectionMatrix = new Matrix4f().perspective(FOV, (float) width / (float) height, Z_NEAR, Z_FAR);
+        windowWindowSizePoseCache = WindowSizePoseCache.of(width, height);
         this.title = title;
         init();
         // glfw video mode
@@ -55,11 +57,13 @@ public class WindowManager {
         glViewport(0, 0, width, height);
         glEnable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
+//        glEnable(GL_CULL_FACE);
         glEnable(GL_STENCIL_TEST);
-        glCullFace(GL_BACK);
+//        glCullFace(GL_BACK);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         LOGGER.info("OpenGL version: {}", glGetString(GL_VERSION));
+        LOGGER.info("OpenGL vendor: {}", glGetString(GL_VENDOR));
+        LOGGER.info("OpenGL renderer: {}", glGetString(GL_RENDERER));
         glfwShowWindow(window);
     }
 
@@ -67,11 +71,11 @@ public class WindowManager {
         GLFWErrorCallback.createPrint(System.err).set();
 
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-        window = glfwCreateWindow(windowDimensions.getWidth(), windowDimensions.getHeight(), title, 0, 0);
+        window = glfwCreateWindow(windowWindowSizePoseCache.getWidth(), windowWindowSizePoseCache.getHeight(), title, 0, 0);
         if (window == 0) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
@@ -90,10 +94,23 @@ public class WindowManager {
         }
         if (glfwGetWindowMonitor(window) != 0) {
             // set window to windowed mode
-            int oldWidth = windowDimensions.getOldWidth();
-            int oldHeight = windowDimensions.getOldHeight();
-            glfwSetWindowMonitor(window, 0, (vidMode.width() - oldWidth) / 2, (vidMode.height() - oldHeight) / 2, oldWidth, oldHeight, 0);
+            int oldWidth = windowWindowSizePoseCache.getOldWidth();
+            int oldHeight = windowWindowSizePoseCache.getOldHeight();
+            int oldX = windowWindowSizePoseCache.getOldX();
+            int oldY = windowWindowSizePoseCache.getOldY();
+            glfwSetWindowMonitor(window, 0, oldX, oldY, oldWidth, oldHeight, 0);
         } else {
+            // save old window dimensions
+            int[] width = new int[1];
+            int[] height = new int[1];
+            int[] x = new int[1];
+            int[] y = new int[1];
+            glfwGetWindowPos(window, x, y);
+            glfwGetWindowSize(window, width, height);
+            windowWindowSizePoseCache.setOldWidth(width[0]);
+            windowWindowSizePoseCache.setOldHeight(height[0]);
+            windowWindowSizePoseCache.setOldX(x[0]);
+            windowWindowSizePoseCache.setOldY(y[0]);
             // set window to monitor
             glfwSetWindowMonitor(window, monitor, 0, 0, vidMode.width(), vidMode.height(), vidMode.refreshRate());
         }
@@ -133,41 +150,38 @@ public class WindowManager {
         glfwSetWindowShouldClose(window, true);
     }
 
-    public void draw() {
-        //TODO: draw something
-    }
-
     public void updateProjectionMatrix() {
-        float aspectRatio = (float) windowDimensions.getWidth() / windowDimensions.getHeight();
-        projectionMatrix.setPerspective(FOV, aspectRatio, Z_NEAR, Z_FAR);
+        float aspectRatio = (float) windowWindowSizePoseCache.getWidth() / windowWindowSizePoseCache.getHeight();
+        projectionMatrix.identity().perspective(FOV, aspectRatio, Z_NEAR, Z_FAR);
     }
 
-    @Getter
-    public static class Dimensions {
+    @Getter @Setter
+    public static class WindowSizePoseCache {
         private int width;
         private int height;
 
         private int oldWidth;
         private int oldHeight;
 
-        private Dimensions(int width, int height) {
+        private int oldX;
+        private int oldY;
+
+        private WindowSizePoseCache(int width, int height) {
             this.width = width;
             this.height = height;
             this.oldHeight = height;
             this.oldWidth = width;
         }
 
-        public static Dimensions of(int width, int height) {
-            return new Dimensions(width, height);
+        public static WindowSizePoseCache of(int width, int height) {
+            return new WindowSizePoseCache(width, height);
         }
 
         public void setHeight(int height) {
-            oldHeight = this.height;
             this.height = height;
         }
 
         public void setWidth(int width) {
-            oldWidth = this.width;
             this.width = width;
         }
     }

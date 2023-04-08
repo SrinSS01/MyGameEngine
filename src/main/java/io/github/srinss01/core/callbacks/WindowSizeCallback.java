@@ -12,9 +12,9 @@ public class WindowSizeCallback {
     }
 
     public void callback(long window, int width, int height) {
-        WindowManager.Dimensions windowDimensions = windowManager.getWindowDimensions();
-        windowDimensions.setWidth(width);
-        windowDimensions.setHeight(height);
+        WindowManager.WindowSizePoseCache windowWindowSizePoseCache = windowManager.getWindowWindowSizePoseCache();
+        windowWindowSizePoseCache.setWidth(width);
+        windowWindowSizePoseCache.setHeight(height);
         windowManager.updateProjectionMatrix();
         glViewport(0, 0, width, height);
     }
